@@ -1,0 +1,22 @@
+# Dependency folders (very heavy, don't upload)
+node_modules/
+server/node_modules/
+
+# Environment Variables (CRITICAL: Contains your secret keys)
+.env
+server/.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+server/dist/
+build/
+
+# IDE and OS files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# TypeScript logs
+*.tsbuildinfo
