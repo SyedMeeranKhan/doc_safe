@@ -1,14 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+import { supabaseVerify } from '../supabase';
 
 // Client to verify JWT
-const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
+// const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey); // Removed in favor of centralized client
 
 export interface AuthRequest extends Request {
   user?: {
@@ -32,7 +26,7 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
   }
 
   try {
-    const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
+    const { data: { user }, error } = await supabaseVerify.auth.getUser(token);
 
     if (error || !user) {
       return res.status(401).json({ error: 'Invalid or expired token' });
