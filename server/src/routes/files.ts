@@ -38,8 +38,8 @@ router.post('/upload', requireAuth, upload.single('file'), async (req: AuthReque
       });
 
     if (storageError) {
-      console.error('Storage Upload Error:', storageError);
-      return res.status(500).json({ error: 'Failed to upload file to storage' });
+      console.error('Storage Upload Error:', JSON.stringify(storageError, null, 2));
+      return res.status(500).json({ error: 'Failed to upload file to storage', details: storageError.message });
     }
 
     // 3. Insert Metadata into Database
@@ -56,10 +56,10 @@ router.post('/upload', requireAuth, upload.single('file'), async (req: AuthReque
       .single();
 
     if (dbError) {
-      console.error('Database Insert Error:', dbError);
+      console.error('Database Insert Error:', JSON.stringify(dbError, null, 2));
       // Cleanup: Attempt to delete the uploaded file if DB insert fails
       await supabaseAdmin.storage.from('user-uploads').remove([fileName]);
-      return res.status(500).json({ error: 'Failed to save file metadata' });
+      return res.status(500).json({ error: 'Failed to save file metadata', details: dbError.message });
     }
 
     res.status(201).json({ message: 'File uploaded successfully', file: dbData });
@@ -83,11 +83,13 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      return res.status(500).json({ error: error.message });
+      console.error('Database List Error:', JSON.stringify(error, null, 2));
+      return res.status(500).json({ error: 'Failed to retrieve files', details: error.message });
     }
 
     res.json(data);
   } catch (err) {
+    console.error('List Endpoint Error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

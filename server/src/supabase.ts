@@ -28,3 +28,34 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
     persistSession: false
   }
 });
+
+// Diagnostic check on startup
+(async () => {
+  try {
+    console.log('🔄 Verifying Supabase Service Role connection...');
+    const { data, error } = await supabaseAdmin.from('files').select('count', { count: 'exact', head: true });
+    
+    if (error) {
+      console.error('❌ Service Role Access Failed:', error.message);
+      console.error('   Hint: Ensure SUPABASE_SERVICE_KEY is actually the Service Role Key (not Anon Key).');
+    } else {
+      console.log('✅ Service Role Access Confirmed (Database connection successful)');
+    }
+
+    // Check Storage Bucket
+    const { data: buckets, error: bucketError } = await supabaseAdmin.storage.listBuckets();
+    if (bucketError) {
+      console.error('❌ Storage Access Failed:', bucketError.message);
+    } else {
+      const bucketExists = buckets.find(b => b.name === 'user-uploads');
+      if (!bucketExists) {
+        console.warn('⚠️  Warning: "user-uploads" bucket not found. File uploads will fail.');
+      } else {
+        console.log('✅ Storage Bucket "user-uploads" found.');
+      }
+    }
+
+  } catch (err) {
+    console.error('❌ Unexpected error during Supabase connection check:', err);
+  }
+})();
