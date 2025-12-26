@@ -40,10 +40,13 @@ export default function App() {
   const [message, setMessage] = useState('')
   const inputRef = useRef<HTMLInputElement | null>(null)
 
+  // Use environment variable for API URL, fallback to localhost for development
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
   const fetchFiles = useCallback(async () => {
     if (!session) return
     try {
-      const response = await fetch('http://localhost:3000/api/files', {
+      const response = await fetch(`${API_URL}/api/files`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -159,7 +162,7 @@ export default function App() {
         const formData = new FormData()
         formData.append('file', item.file)
 
-        const response = await fetch('http://localhost:3000/api/files/upload', {
+        const response = await fetch(`${API_URL}/api/files/upload`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session.access_token}`
