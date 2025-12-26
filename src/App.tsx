@@ -185,7 +185,7 @@ export default function App() {
   const handleDownload = async (fileId: string, fileName: string) => {
     if (!session) return
     try {
-      const response = await fetch(`http://localhost:3000/api/files/${fileId}/download`, {
+      const response = await fetch(`${API_URL}/api/files/${fileId}/download`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
