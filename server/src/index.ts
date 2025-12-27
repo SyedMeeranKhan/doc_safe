@@ -48,7 +48,7 @@ app.use(cors(corsOptions));
 
 // 3. Explicitly handle preflight OPTIONS requests
 // This ensures OPTIONS requests get a 200 OK and proper headers immediately
-app.options('*', cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
 

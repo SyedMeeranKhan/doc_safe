@@ -42,21 +42,3 @@ export const supabaseAdmin = createSafeClient(supabaseUrl, supabaseServiceKey, {
     persistSession: false
   }
 });
-
-// Diagnostic check on startup
-(async () => {
-  if (!supabaseUrl || !supabaseServiceKey) return;
-  
-  try {
-    console.log('🔄 Verifying Supabase Service Role connection...');
-    const { error } = await supabaseAdmin.from('files').select('count', { count: 'exact', head: true });
-    
-    if (error) {
-      console.error('❌ Service Role Access Failed:', error.message);
-    } else {
-      console.log('✅ Service Role Access Confirmed');
-    }
-  } catch (err) {
-    console.error('❌ Unexpected error during Supabase connection check:', err);
-  }
-})();
