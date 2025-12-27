@@ -1,19 +1,34 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
-  console.warn('Missing Supabase credentials in .env file');
+  console.error('❌ CRITICAL ERROR: Missing Supabase credentials in environment variables.');
+  console.error('   Required: SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY');
+  // We do not exit here to allow the server to start and log the error, 
+  // but functionality will be broken.
 }
 
+// Helper to create a safe client or a dummy one if credentials fail
+const createSafeClient = (url: string | undefined, key: string | undefined, options: any): SupabaseClient => {
+  if (!url || !key) {
+    // Return a dummy client that throws intelligible errors when used
+    return {
+      from: () => ({ select: () => ({ data: null, error: { message: 'Supabase not configured' } }) }),
+      storage: { listBuckets: () => ({ data: null, error: { message: 'Supabase not configured' } }) },
+      auth: { getUser: () => ({ data: { user: null }, error: { message: 'Supabase not configured' } }) }
+    } as unknown as SupabaseClient;
+  }
+  return createClient(url, key, options);
+};
+
 // 1. Client for verifying user tokens (Anon Key)
-// This client has limited permissions and is used only for auth validation
-export const supabaseVerify = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabaseVerify = createSafeClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
@@ -21,8 +36,7 @@ export const supabaseVerify = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // 2. Client for database & storage access (Service Role Key)
-// This client has admin privileges and bypasses RLS
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+export const supabaseAdmin = createSafeClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
@@ -31,30 +45,17 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 
 // Diagnostic check on startup
 (async () => {
+  if (!supabaseUrl || !supabaseServiceKey) return;
+  
   try {
     console.log('🔄 Verifying Supabase Service Role connection...');
-    const { data, error } = await supabaseAdmin.from('files').select('count', { count: 'exact', head: true });
+    const { error } = await supabaseAdmin.from('files').select('count', { count: 'exact', head: true });
     
     if (error) {
       console.error('❌ Service Role Access Failed:', error.message);
-      console.error('   Hint: Ensure SUPABASE_SERVICE_KEY is actually the Service Role Key (not Anon Key).');
     } else {
-      console.log('✅ Service Role Access Confirmed (Database connection successful)');
+      console.log('✅ Service Role Access Confirmed');
     }
-
-    // Check Storage Bucket
-    const { data: buckets, error: bucketError } = await supabaseAdmin.storage.listBuckets();
-    if (bucketError) {
-      console.error('❌ Storage Access Failed:', bucketError.message);
-    } else {
-      const bucketExists = buckets.find(b => b.name === 'user-uploads');
-      if (!bucketExists) {
-        console.warn('⚠️  Warning: "user-uploads" bucket not found. File uploads will fail.');
-      } else {
-        console.log('✅ Storage Bucket "user-uploads" found.');
-      }
-    }
-
   } catch (err) {
     console.error('❌ Unexpected error during Supabase connection check:', err);
   }

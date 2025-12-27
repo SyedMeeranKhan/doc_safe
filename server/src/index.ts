@@ -44,6 +44,15 @@ app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
+// Root route for health check and simple verification
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'DocSafe Backend is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Routes
 app.use('/api/files', fileRoutes);
 
@@ -51,6 +60,13 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
+// Global Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled Error:', err);
+  res.status(500).json({ error: 'Internal Server Error', details: err.message });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
