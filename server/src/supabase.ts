@@ -14,6 +14,21 @@ if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
   // but functionality will be broken.
 }
 
+const fetchWithTimeout: typeof fetch = async (input, init) => {
+  const controller = new AbortController();
+  const timeoutMs = Number(process.env.SUPABASE_FETCH_TIMEOUT_MS || 12000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input as any, {
+      ...init,
+      signal: init?.signal ?? controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 // Helper to create a safe client or a dummy one if credentials fail
 const createSafeClient = (url: string | undefined, key: string | undefined, options: any): SupabaseClient => {
   if (!url || !key) {
@@ -24,7 +39,13 @@ const createSafeClient = (url: string | undefined, key: string | undefined, opti
       auth: { getUser: () => ({ data: { user: null }, error: { message: 'Supabase not configured' } }) }
     } as unknown as SupabaseClient;
   }
-  return createClient(url, key, options);
+  return createClient(url, key, {
+    ...options,
+    global: {
+      ...(options?.global ?? {}),
+      fetch: fetchWithTimeout
+    }
+  });
 };
 
 // 1. Client for verifying user tokens (Anon Key)
