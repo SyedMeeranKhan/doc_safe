@@ -15,17 +15,25 @@ app.set('trust proxy', 1);
 // Configure CORS for production
 const allowedOrigins = [
   'http://localhost:5173', // Local development
+  'http://localhost:3000', // Local backend test
   'https://doc-safe.vercel.app', // Production Frontend
-  'https://docsafe-production.up.railway.app' // Self-reference (optional)
+  'https://docsafe-production.up.railway.app' // Self-reference
 ];
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Debug logging for production to trace CORS issues
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`[CORS] Incoming Origin: ${origin || 'NO_ORIGIN'}`);
+    }
+
+    // Allow requests with no origin (like mobile apps, curl requests, or server-to-server)
     if (!origin) return callback(null, true);
+    
     if (allowedOrigins.indexOf(origin) !== -1) {
       return callback(null, true);
     } else {
+      console.warn(`[CORS] Blocked Origin: ${origin}`);
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
